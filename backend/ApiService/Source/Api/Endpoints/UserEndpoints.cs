@@ -63,6 +63,18 @@ namespace Epam.ItMarathon.ApiService.Api.Endpoints
                 .WithSummary("Create and add user to a room.")
                 .WithDescription("Return created user info.");
 
+                _ = root.MapDelete("{id:long}", DeleteUser)
+                    .AddEndpointFilterFactory(ValidationFactoryFilter.GetValidationFactory)
+                    .Produces(StatusCodes.Status204NoContent)
+                    .ProducesProblem(StatusCodes.Status400BadRequest)
+                    .ProducesProblem(StatusCodes.Status401Unauthorized)
+                    .ProducesProblem(StatusCodes.Status403Forbidden)
+                    .ProducesProblem(StatusCodes.Status404NotFound)
+                    .ProducesProblem(StatusCodes.Status409Conflict)
+                    .ProducesProblem(StatusCodes.Status500InternalServerError)
+                    .WithSummary("Delete user by id with admin userCode.")
+                    .WithDescription("Deletes a user if all validation passes.");
+
             return application;
         }
 
@@ -129,5 +141,41 @@ namespace Epam.ItMarathon.ApiService.Api.Endpoints
                 ? result.Error.ValidationProblem()
                 : Results.Created(string.Empty, mapper.Map<UserCreationResponse>(result.Value));
         }
+
+            /// <summary>
+            /// Delete user by id with admin userCode.
+            /// </summary>
+            /// <param name="id">Unique identifier of the User to delete.</param>
+            /// <param name="userCode">Admin user's authorization code.</param>
+            /// <param name="mediator">IMediator for business logic.</param>
+            /// <param name="cancellationToken">Cancellation token.</param>
+            /// <returns>Returns appropriate HTTP result.</returns>
+            public static async Task<IResult> DeleteUser(
+                [FromRoute] ulong id,
+                [FromQuery, Required] string? userCode,
+                IMediator mediator,
+                CancellationToken cancellationToken)
+            {
+                if (string.IsNullOrWhiteSpace(userCode))
+                    return Results.BadRequest(new { error = "Missing userCode query parameter." });
+
+                var result = await mediator.Send(new Epam.ItMarathon.ApiService.Application.UseCases.User.Commands.DeleteUserCommand(id, userCode!), cancellationToken);
+
+                if (result.Success)
+                    return Results.NoContent();
+
+                return result.ErrorCode switch
+                {
+                    "UserNotFound" => Results.NotFound(new { error = result.ErrorMessage }),
+                    "AdminNotFound" => Results.NotFound(new { error = result.ErrorMessage }),
+                    "NotAdmin" => Results.Forbid(),
+                    "DifferentRooms" => Results.BadRequest(new { error = result.ErrorMessage }),
+                    "SameUser" => Results.BadRequest(new { error = result.ErrorMessage }),
+                    "RoomClosed" => Results.Conflict(new { error = result.ErrorMessage }),
+                    "RoomNotFound" => Results.NotFound(new { error = result.ErrorMessage }),
+                    "DeleteFailed" => Results.StatusCode(StatusCodes.Status500InternalServerError, new { error = result.ErrorMessage }),
+                    _ => Results.StatusCode(StatusCodes.Status500InternalServerError, new { error = "Unknown error." })
+                };
+            }
     }
 }

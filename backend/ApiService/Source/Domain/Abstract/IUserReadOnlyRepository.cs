@@ -39,5 +39,13 @@ namespace Epam.ItMarathon.ApiService.Domain.Abstract
         /// <returns>Returns list of <see cref="User"/> if found, otherwise <see cref="ValidationResult"/>.</returns>
         public Task<Result<List<User>, ValidationResult>> GetManyByRoomIdAsync(ulong roomId,
             CancellationToken cancellationToken);
+
+            /// <summary>
+            /// Delete user by unique User's unique identifier.
+            /// </summary>
+            /// <param name="id">Unique User's unique identifier.</param>
+            /// <param name="cancellationToken"><see cref="CancellationToken"/> that can be used to cancel operation.</param>
+            /// <returns>Returns success or validation error.</returns>
+            public Task<Result<bool, ValidationResult>> DeleteAsync(ulong id, CancellationToken cancellationToken);
     }
 }

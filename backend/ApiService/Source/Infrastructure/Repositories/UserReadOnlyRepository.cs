@@ -35,6 +35,21 @@ namespace Epam.ItMarathon.ApiService.Infrastructure.Repositories
             return result;
         }
 
+            /// <inheritdoc/>
+            public async Task<Result<bool, ValidationResult>> DeleteAsync(ulong id, CancellationToken cancellationToken)
+            {
+                var userEf = await context.Users.FirstOrDefaultAsync(user => user.Id.Equals(id), cancellationToken);
+                if (userEf == null)
+                {
+                    return Result.Failure<bool, ValidationResult>(new NotFoundError([
+                        new ValidationFailure(nameof(id), "User with such id not found")
+                    ]));
+                }
+                context.Users.Remove(userEf);
+                await context.SaveChangesAsync(cancellationToken);
+                return Result.Success<bool, ValidationResult>(true);
+            }
+
         /// <inheritdoc/>
         public async Task<Result<User, ValidationResult>> GetByIdAsync(ulong id, CancellationToken cancellationToken,
             bool includeRoom = false, bool includeWishes = false)
