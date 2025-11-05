@@ -8,7 +8,7 @@
         /// <summary>
         /// Unique identifier of entity.
         /// </summary>
-        public ulong Id { get; protected set; }
+        public ulong Id { get; set; }
 
         /// <summary>
         /// Date when the entity was created.

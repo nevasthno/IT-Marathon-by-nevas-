@@ -7,9 +7,13 @@ using Epam.ItMarathon.ApiService.Infrastructure.Database;
 using Epam.ItMarathon.ApiService.Infrastructure.Database.Models.Room;
 using Epam.ItMarathon.ApiService.Infrastructure.Database.Models.Room.Extensions;
 using FluentValidation.Results;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Epam.ItMarathon.ApiService.Infrastructure.Repositories
 {
@@ -35,7 +39,8 @@ namespace Epam.ItMarathon.ApiService.Infrastructure.Repositories
                 await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                return mapper.Map<Room>(roomEf);
+                var domainRoom = mapper.Map<Room>(roomEf);
+                return Result.Success<Room, ValidationResult>(domainRoom);
             }
             catch (DbUpdateException exception)
             {
@@ -90,6 +95,31 @@ namespace Epam.ItMarathon.ApiService.Infrastructure.Repositories
             return result;
         }
 
+        /// <summary>
+        /// Implementation expected by DeleteUserHandler — uses ulong id
+        /// </summary>
+        public async Task<Result<Room, ValidationResult>> GetByIdAsync(ulong id, CancellationToken cancellationToken)
+        {
+            var roomEf = await context.Rooms
+                .Include(r => r.Users)
+                .ThenInclude(u => u.Wishes)
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (roomEf == null)
+            {
+                var validation = new ValidationResult(new[]
+                {
+            new ValidationFailure("id", "Room with such id not found")
+        });
+
+                return Result.Failure<Room, ValidationResult>(validation);
+            }
+
+            var domainRoom = mapper.Map<Room>(roomEf);
+            return Result.Success<Room, ValidationResult>(domainRoom);
+        }
+
+
         private async Task<Result<Room, ValidationResult>> GetByCodeAsync(Expression<Func<RoomEf, bool>> codeExpression,
             CancellationToken cancellationToken, bool includeUsers = false)
         {
@@ -100,12 +130,20 @@ namespace Epam.ItMarathon.ApiService.Infrastructure.Repositories
             }
 
             var roomEf = await roomQuery.FirstOrDefaultAsync(codeExpression, cancellationToken);
-            var result = roomEf == null
-                ? Result.Failure<Room, ValidationResult>(new NotFoundError([
-                    new ValidationFailure("code", "Room with such code not found")
-                ]))
-                : mapper.Map<Room>(roomEf);
-            return result;
+
+            if (roomEf == null)
+            {
+                var validation = new ValidationResult(new[]
+                {
+        new ValidationFailure("id", "Room with such id not found")
+    });
+
+                return Result.Failure<Room, ValidationResult>(validation);
+            }
+
+
+            var domainRoom = mapper.Map<Room>(roomEf);
+            return Result.Success<Room, ValidationResult>(domainRoom);
         }
     }
 }
