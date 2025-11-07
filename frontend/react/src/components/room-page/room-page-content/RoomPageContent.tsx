@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 
 import RandomizationModal from "@components/common/modals/randomization-modal/RandomizationModal";
@@ -16,140 +16,153 @@ import type { WishlistProps } from "@components/common/wishlist/types";
 import type { RoomPageContentProps } from "./types";
 import "./RoomPageContent.scss";
 
+import { getParticipants } from "../../../utils/api";
+
 const RoomPageContent = ({
-  participants,
-  roomDetails,
-  onDrawNames,
+    participants: initialParticipants,
+    roomDetails,
+    onDrawNames,
 }: RoomPageContentProps) => {
-  const { userCode } = useParams();
-  const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false);
-  const [isViewWishlistModalOpen, setViewWishlistModalOpen] = useState(false);
-  const [isPersonalInformationModalOpen, setIsPersonalInformationModalOpen] =
-    useState(false);
+    const [participants, setParticipants] = useState(initialParticipants);
 
-  if (!userCode) {
-    return null;
-  }
+    const fetchParticipants = async () => {
+        if (!roomDetails?.id) return;
+        const data = await getParticipants(roomDetails.id.toString());
+        setParticipants(data);
+    };
 
-  const currentUser = getCurrentUser(userCode, participants);
+    useEffect(() => {
+        setParticipants(initialParticipants);
+    }, [initialParticipants]);
+    const { userCode } = useParams();
+    const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false);
+    const [isViewWishlistModalOpen, setViewWishlistModalOpen] = useState(false);
+    const [isPersonalInformationModalOpen, setIsPersonalInformationModalOpen] =
+        useState(false);
 
-  const currentUserPersonalInfo = {
-    firstName: currentUser?.firstName ?? "",
-    lastName: currentUser?.lastName ?? "",
-    phone: currentUser?.phone ?? "",
-    email: currentUser?.email ?? "",
-    deliveryInfo: currentUser?.deliveryInfo ?? "",
-  };
+    if (!userCode) {
+        return null;
+    }
 
-  const isAdmin = currentUser?.isAdmin;
+    const currentUser = getCurrentUser(userCode, participants);
 
-  const isRandomized = !!roomDetails?.closedOn;
+    const currentUserPersonalInfo = {
+        firstName: currentUser?.firstName ?? "",
+        lastName: currentUser?.lastName ?? "",
+        phone: currentUser?.phone ?? "",
+        email: currentUser?.email ?? "",
+        deliveryInfo: currentUser?.deliveryInfo ?? "",
+    };
 
-  const giftRecipientId = currentUser?.giftToUserId;
+    const isAdmin = currentUser?.isAdmin;
 
-  const giftRecipient = giftRecipientId
-    ? getParticipantInfoById(giftRecipientId, participants)
-    : null;
+    const isRandomized = !!roomDetails?.closedOn;
 
-  const giftRecipientPersonalInfo = {
-    firstName: giftRecipient?.firstName ?? "",
-    lastName: giftRecipient?.lastName ?? "",
-    phone: giftRecipient?.phone ?? "",
-    email: giftRecipient?.email ?? "",
-    deliveryInfo: giftRecipient?.deliveryInfo ?? "",
-  };
+    const giftRecipientId = currentUser?.giftToUserId;
 
-  const giftRecipientFullName = `${giftRecipient?.firstName} ${giftRecipient?.lastName}`;
+    const giftRecipient = giftRecipientId
+        ? getParticipantInfoById(giftRecipientId, participants)
+        : null;
 
-  const giftRecipientWishlistData: WishlistProps = giftRecipient?.wantSurprise
-    ? { variant: "surprise", interests: giftRecipient?.interests ?? "" }
-    : { variant: "wishlist", wishList: giftRecipient?.wishList ?? [] };
+    const giftRecipientPersonalInfo = {
+        firstName: giftRecipient?.firstName ?? "",
+        lastName: giftRecipient?.lastName ?? "",
+        phone: giftRecipient?.phone ?? "",
+        email: giftRecipient?.email ?? "",
+        deliveryInfo: giftRecipient?.deliveryInfo ?? "",
+    };
 
-  const handleReadUserDetails = () => {
-    setIsUserDetailsModalOpen(true);
-  };
+    const giftRecipientFullName = `${giftRecipient?.firstName} ${giftRecipient?.lastName}`;
 
-  const handleViewWishListModal = () => {
-    setViewWishlistModalOpen(true);
-  };
+    const giftRecipientWishlistData: WishlistProps = giftRecipient?.wantSurprise
+        ? { variant: "surprise", interests: giftRecipient?.interests ?? "" }
+        : { variant: "wishlist", wishList: giftRecipient?.wishList ?? [] };
 
-  const handleViewPersonalInformation = () => {
-    setIsPersonalInformationModalOpen(true);
-  };
+    const handleReadUserDetails = () => {
+        setIsUserDetailsModalOpen(true);
+    };
 
-  return (
-    <div className="room-page-content">
-      <div className="room-page-content-row">
-        <RoomDetails
-          name={roomDetails.name}
-          description={roomDetails.description}
-          exchangeDate={roomDetails.giftExchangeDate}
-          giftBudget={roomDetails.giftMaximumBudget}
-          invitationNote={roomDetails.invitationNote}
-          withoutInvitationCard={!isAdmin || isRandomized}
-          roomLink={generateRoomLink(roomDetails.invitationCode)}
-          invitationLink={generateRoomLink(roomDetails.invitationCode)}
-        />
+    const handleViewWishListModal = () => {
+        setViewWishlistModalOpen(true);
+    };
 
-        {currentUser ? (
-          <ParticipantInfo
-            participantName={currentUser?.firstName}
-            roomName={roomDetails.name}
-            participantLink={generateParticipantLink(currentUser?.userCode)}
-            onViewInformation={handleViewPersonalInformation}
-          />
-        ) : null}
-      </div>
+    const handleViewPersonalInformation = () => {
+        setIsPersonalInformationModalOpen(true);
+    };
 
-      <div className="room-page-content-row">
-        <ParticipantsList participants={participants} />
+    return (
+        <div className="room-page-content">
+            <div className="room-page-content-row">
+                <RoomDetails
+                    name={roomDetails.name}
+                    description={roomDetails.description}
+                    exchangeDate={roomDetails.giftExchangeDate}
+                    giftBudget={roomDetails.giftMaximumBudget}
+                    invitationNote={roomDetails.invitationNote}
+                    withoutInvitationCard={!isAdmin || isRandomized}
+                    roomLink={generateRoomLink(roomDetails.invitationCode)}
+                    invitationLink={generateRoomLink(roomDetails.invitationCode)}
+                />
 
-        <div className="room-page-content-column">
-          {isAdmin || (!isAdmin && isRandomized) ? (
-            <RandomizationPanel
-              isRandomized={isRandomized}
-              userCount={participants.length}
-              fullName={giftRecipientFullName}
-              onDraw={onDrawNames}
-              onReadUserDetails={handleReadUserDetails}
+                {currentUser ? (
+                    <ParticipantInfo
+                        participantName={currentUser?.firstName}
+                        roomName={roomDetails.name}
+                        participantLink={generateParticipantLink(currentUser?.userCode)}
+                        onViewInformation={handleViewPersonalInformation}
+                    />
+                ) : null}
+            </div>
+
+            <div className="room-page-content-row">
+                <ParticipantsList participants={participants} onUserDeleted={fetchParticipants} />
+
+                <div className="room-page-content-column">
+                    {isAdmin || (!isAdmin && isRandomized) ? (
+                        <RandomizationPanel
+                            isRandomized={isRandomized}
+                            userCount={participants.length}
+                            fullName={giftRecipientFullName}
+                            onDraw={onDrawNames}
+                            onReadUserDetails={handleReadUserDetails}
+                        />
+                    ) : null}
+
+                    <WishlistPreview
+                        isWantSurprise={currentUser?.wantSurprise}
+                        wishListData={currentUser?.wishList}
+                        onViewWishlist={handleViewWishListModal}
+                    />
+                </div>
+            </div>
+
+            {giftRecipientPersonalInfo ? (
+                <RandomizationModal
+                    isOpen={isUserDetailsModalOpen}
+                    onClose={() => setIsUserDetailsModalOpen(false)}
+                    personalInfoData={giftRecipientPersonalInfo}
+                    wishlistData={giftRecipientWishlistData}
+                />
+            ) : null}
+
+            {currentUser ? (
+                <ViewWishlistModal
+                    isOpen={isViewWishlistModalOpen}
+                    onClose={() => setViewWishlistModalOpen(false)}
+                    budget={roomDetails.giftMaximumBudget}
+                    wantSurprise={currentUser.wantSurprise}
+                    interests={currentUser.interests ?? ""}
+                    wishlistData={currentUser.wishList ?? []}
+                />
+            ) : null}
+
+            <PersonalInformationModal
+                isOpen={isPersonalInformationModalOpen}
+                onClose={() => setIsPersonalInformationModalOpen(false)}
+                personalInfoData={currentUserPersonalInfo}
             />
-          ) : null}
-
-          <WishlistPreview
-            isWantSurprise={currentUser?.wantSurprise}
-            wishListData={currentUser?.wishList}
-            onViewWishlist={handleViewWishListModal}
-          />
         </div>
-      </div>
-
-      {giftRecipientPersonalInfo ? (
-        <RandomizationModal
-          isOpen={isUserDetailsModalOpen}
-          onClose={() => setIsUserDetailsModalOpen(false)}
-          personalInfoData={giftRecipientPersonalInfo}
-          wishlistData={giftRecipientWishlistData}
-        />
-      ) : null}
-
-      {currentUser ? (
-        <ViewWishlistModal
-          isOpen={isViewWishlistModalOpen}
-          onClose={() => setViewWishlistModalOpen(false)}
-          budget={roomDetails.giftMaximumBudget}
-          wantSurprise={currentUser.wantSurprise}
-          interests={currentUser.interests ?? ""}
-          wishlistData={currentUser.wishList ?? []}
-        />
-      ) : null}
-
-      <PersonalInformationModal
-        isOpen={isPersonalInformationModalOpen}
-        onClose={() => setIsPersonalInformationModalOpen(false)}
-        personalInfoData={currentUserPersonalInfo}
-      />
-    </div>
-  );
+    );
 };
 
 export default RoomPageContent;
