@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 
 import RandomizationModal from "@components/common/modals/randomization-modal/RandomizationModal";
@@ -16,11 +16,24 @@ import type { WishlistProps } from "@components/common/wishlist/types";
 import type { RoomPageContentProps } from "./types";
 import "./RoomPageContent.scss";
 
+import { getParticipants } from "../../../utils/api";
+
 const RoomPageContent = ({
-  participants,
+  participants: initialParticipants,
   roomDetails,
   onDrawNames,
 }: RoomPageContentProps) => {
+  const [participants, setParticipants] = useState(initialParticipants);
+
+  const fetchParticipants = async () => {
+    if (!roomDetails?.id) return;
+    const data = await getParticipants(roomDetails.id.toString());
+    setParticipants(data);
+  };
+
+  useEffect(() => {
+    setParticipants(initialParticipants);
+  }, [initialParticipants]);
   const { userCode } = useParams();
   const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false);
   const [isViewWishlistModalOpen, setViewWishlistModalOpen] = useState(false);
@@ -102,7 +115,11 @@ const RoomPageContent = ({
       </div>
 
       <div className="room-page-content-row">
-        <ParticipantsList participants={participants} />
+        <ParticipantsList
+          participants={participants}
+          onUserDeleted={fetchParticipants}
+          isRandomized={isRandomized}
+        />
 
         <div className="room-page-content-column">
           {isAdmin || (!isAdmin && isRandomized) ? (

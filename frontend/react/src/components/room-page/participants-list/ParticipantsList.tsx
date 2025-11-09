@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useCallback } from "react";
 import { useParams } from "react-router";
+import { deleteUserFromRoom } from "../../../utils/api";
 import ParticipantCard from "@components/common/participant-card/ParticipantCard";
 import ParticipantDetailsModal from "@components/common/modals/participant-details-modal/ParticipantDetailsModal";
-import type { Participant } from "@types/api";
+import type { Participant } from "../../../types/api";
 import {
   MAX_PARTICIPANTS_NUMBER,
   generateParticipantLink,
@@ -10,8 +12,55 @@ import {
 import { type ParticipantsListProps, type PersonalInformation } from "./types";
 import "./ParticipantsList.scss";
 
-const ParticipantsList = ({ participants }: ParticipantsListProps) => {
+const ParticipantsList = ({
+  participants,
+  onUserDeleted,
+  isRandomized,
+}: ParticipantsListProps & {
+  onUserDeleted?: () => void;
+  isRandomized?: boolean;
+}) => {
   const { userCode } = useParams();
+  const [deletingUserCode, setDeletingUserCode] = useState<string | null>(null);
+  const [showRefreshTip, setShowRefreshTip] = useState(false);
+  const handleDeleteUser = useCallback(
+    async (userIdToDelete: number) => {
+      if (!userCode || !userIdToDelete) return;
+      setDeletingUserCode(userIdToDelete.toString());
+      try {
+        const res = await deleteUserFromRoom({
+          userId: userIdToDelete.toString(),
+          adminUserCode: userCode,
+        });
+        if (
+          res === undefined ||
+          res === null ||
+          (typeof res === "object" && Object.keys(res).length === 0) ||
+          res.success
+        ) {
+          let attempts = 0;
+          const maxAttempts = 5;
+          const delay = 300;
+          const retryFetch = async () => {
+            if (onUserDeleted) await onUserDeleted();
+            attempts++;
+            setTimeout(async () => {
+              if (attempts < maxAttempts) {
+                setShowRefreshTip(true);
+              }
+            }, delay);
+          };
+          retryFetch();
+        } else {
+          alert(res.errorMessage || "Не вдалося видалити користувача");
+        }
+      } catch {
+        alert("Помилка при видаленні користувача");
+      }
+      setDeletingUserCode(null);
+    },
+    [userCode, onUserDeleted],
+  );
   const [selectedParticipant, setSelectedParticipant] =
     useState<PersonalInformation | null>(null);
 
@@ -70,21 +119,42 @@ const ParticipantsList = ({ participants }: ParticipantsListProps) => {
           ) : null}
 
           {restParticipants?.map((user) => (
-            <ParticipantCard
-              key={user?.id}
-              firstName={user?.firstName}
-              lastName={user?.lastName}
-              isCurrentUser={userCode === user?.userCode}
-              isCurrentUserAdmin={userCode === admin?.userCode}
-              participantLink={generateParticipantLink(user?.userCode)}
-              onInfoButtonClick={
-                userCode === admin?.userCode && userCode !== user?.userCode
-                  ? () => handleInfoButtonClick(user)
-                  : undefined
-              }
-            />
+            <div
+              key={user?.userCode}
+              className="participant-list__card-wrapper"
+            >
+              <ParticipantCard
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                isCurrentUser={userCode === user?.userCode}
+                isCurrentUserAdmin={userCode === admin?.userCode}
+                participantLink={generateParticipantLink(user?.userCode)}
+                onInfoButtonClick={
+                  userCode === admin?.userCode && userCode !== user?.userCode
+                    ? () => handleInfoButtonClick(user)
+                    : undefined
+                }
+                onDeleteButtonClick={
+                  !isRandomized &&
+                  userCode === admin?.userCode &&
+                  userCode !== user?.userCode
+                    ? () => handleDeleteUser(user.id)
+                    : null
+                }
+                isDeleting={deletingUserCode === user?.id.toString()}
+              />
+            </div>
           ))}
         </div>
+
+        {showRefreshTip && (
+          <div
+            className="participant-list__refresh-tip"
+            style={{ color: "#ff4d4f", margin: "16px 0", textAlign: "center" }}
+          >
+            Дані не оновились? Будь ласка, <b>оновіть сторінку</b> вручну.
+          </div>
+        )}
 
         {selectedParticipant ? (
           <ParticipantDetailsModal
