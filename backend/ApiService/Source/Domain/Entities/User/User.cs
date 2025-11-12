@@ -16,7 +16,7 @@ namespace Epam.ItMarathon.ApiService.Domain.Entities.User
         /// <summary>
         /// User's Room unique identifier.
         /// </summary>
-        public ulong RoomId { get; private set; }
+        public ulong RoomId { get; set; }
 
         /// <summary>
         /// User's authorization code.
@@ -46,7 +46,7 @@ namespace Epam.ItMarathon.ApiService.Domain.Entities.User
         /// <summary>
         /// Delivery info for receiving Gift by User.
         /// </summary>
-        public required string DeliveryInfo { get; set; }
+        public string DeliveryInfo { get; set; } = string.Empty;
 
         /// <summary>
         /// Unique identifier of the User, which current User will send a gift.
@@ -66,14 +66,14 @@ namespace Epam.ItMarathon.ApiService.Domain.Entities.User
         /// <summary>
         /// Whether User an admin or not.
         /// </summary>
-        public bool IsAdmin { get; private set; }
+        public bool IsAdmin { get; set; }
 
         /// <summary>
         /// List of desired gifts in case when User doesn't want surprise.
         /// </summary>
-        public required IEnumerable<Wish> Wishes { get; set; }
+        public IEnumerable<Wish> Wishes { get; set; } = new List<Wish>();
 
-        private User()
+        public User()
         {
         }
 

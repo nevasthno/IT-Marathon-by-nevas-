@@ -22,7 +22,7 @@ namespace Epam.ItMarathon.ApiService.Domain.Aggregate.Room
         /// <summary>
         /// Time when Room was closed.
         /// </summary>
-        public DateTime? ClosedOn { get; private set; }
+        public DateTime? ClosedOn { get; set; }
 
         /// <summary>
         /// Code for invitation link.
@@ -79,9 +79,7 @@ namespace Epam.ItMarathon.ApiService.Domain.Aggregate.Room
         /// </summary>
         public IList<User> Users { get; private set; } = [];
 
-        private Room()
-        {
-        }
+        public Room() { }
 
         /// <summary>
         /// Method to initialize Room for the first time.

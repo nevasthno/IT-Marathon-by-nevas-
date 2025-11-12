@@ -1,6 +1,9 @@
 ﻿using CSharpFunctionalExtensions;
 using Epam.ItMarathon.ApiService.Domain.Aggregate.Room;
 using FluentValidation.Results;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Epam.ItMarathon.ApiService.Domain.Abstract
 {
@@ -41,5 +44,13 @@ namespace Epam.ItMarathon.ApiService.Domain.Abstract
         /// <returns>Returns <see cref="Room"/> if found, otherwise <see cref="ValidationResult"/></returns>
         public Task<Result<Room, ValidationResult>> GetByRoomCodeAsync(string roomCode,
             CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Get Room by unique Id
+        /// </summary>
+        /// <param name="id">Room Id</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/> that can be used to cancel operation.</param>
+        /// <returns>Returns <see cref="Room"/> if found, otherwise <see cref="ValidationResult"/></returns>
+        public Task<Result<Room, ValidationResult>> GetByIdAsync(ulong id, CancellationToken cancellationToken);
     }
 }
