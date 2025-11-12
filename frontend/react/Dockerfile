@@ -7,10 +7,10 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM alpine:3.21
-RUN apk update && apk add --no-cache nginx bash curl netcat-openbsd
+# Use official nginx image for production
+FROM nginx:1.25-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/http.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:80 || exit 1
